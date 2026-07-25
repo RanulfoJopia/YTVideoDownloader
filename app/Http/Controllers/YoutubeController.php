@@ -31,14 +31,12 @@ class YoutubeController extends Controller
 
     private function processEnv(): array
     {
-        $env = getenv(); // grab the FULL current environment (SystemRoot, windir, PATH, etc.)
+        $env = getenv();
         $env['TEMP'] = $this->tempDir;
         $env['TMP']  = $this->tempDir;
         return $env;
     }
 
-    // Checks whether yt-dlp is reachable, whether it's a full Windows path
-    // or just a command name resolved via Linux's PATH
     private function ytDlpAvailable(): bool
     {
         if (PHP_OS_FAMILY === 'Windows') {
@@ -73,21 +71,31 @@ class YoutubeController extends Controller
             mkdir($this->tempDir, 0755, true);
         }
 
+        Log::info('Cookies check', [
+            'path'   => $this->cookiesPath,
+            'exists' => file_exists($this->cookiesPath),
+        ]);
+
         try {
-            $process = new Process(
-                [
-                    $this->ytDlpPath,
-                    '--dump-json',
-                    '--no-playlist',
-                    $url,
-                ],
-                null,
-                $this->processEnv()
-            );
+            $args = [
+                $this->ytDlpPath,
+                '--dump-json',
+                '--no-playlist',
+            ];
+
+            if (file_exists($this->cookiesPath)) {
+                $args[] = '--cookies';
+                $args[] = $this->cookiesPath;
+            }
+
+            $args[] = $url;
+
+            $process = new Process($args, null, $this->processEnv());
             $process->setTimeout(60);
             $process->run();
 
             Log::info('yt-dlp SCAN attempt', [
+                'command'   => $process->getCommandLine(),
                 'exit_code' => $process->getExitCode(),
                 'error'     => $process->getErrorOutput(),
             ]);
@@ -155,18 +163,23 @@ class YoutubeController extends Controller
         $format = "bestvideo[height<={$height}]+bestaudio/best[height<={$height}]";
 
         try {
-            $process = new Process(
-                [
-                    $this->ytDlpPath,
-                    '-f', $format,
-                    '--merge-output-format', 'mp4',
-                    '--ffmpeg-location', $this->ffmpegDir,
-                    '-o', $outputPath,
-                    $url,
-                ],
-                null,
-                $this->processEnv()
-            );
+            $args = [
+                $this->ytDlpPath,
+                '-f', $format,
+                '--merge-output-format', 'mp4',
+                '--ffmpeg-location', $this->ffmpegDir,
+            ];
+
+            if (file_exists($this->cookiesPath)) {
+                $args[] = '--cookies';
+                $args[] = $this->cookiesPath;
+            }
+
+            $args[] = '-o';
+            $args[] = $outputPath;
+            $args[] = $url;
+
+            $process = new Process($args, null, $this->processEnv());
             $process->setTimeout(600);
             $process->run();
 
