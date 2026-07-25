@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --break-system-packages -U yt-dlp
+RUN yt-dlp -U || true
 
 # Install Deno (JS runtime yt-dlp needs to solve YouTube's n-challenge)
 RUN curl -fsSL https://deno.land/install.sh | sh

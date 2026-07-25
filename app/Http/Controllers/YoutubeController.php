@@ -100,6 +100,7 @@ class YoutubeController extends Controller
                 $this->ytDlpPath,
                 '--dump-json',
                 '--no-playlist',
+                '--remote-components', 'ejs:github',
             ];
 
             $writableCookies = $this->getWritableCookiesPath();
@@ -188,6 +189,7 @@ class YoutubeController extends Controller
                 '-f', $format,
                 '--merge-output-format', 'mp4',
                 '--ffmpeg-location', $this->ffmpegDir,
+                '--remote-components', 'ejs:github',
             ];
 
             $writableCookies = $this->getWritableCookiesPath();
