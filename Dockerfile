@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install --break-system-packages -U yt-dlp
 
+# Install Deno (JS runtime yt-dlp needs to solve YouTube's n-challenge)
+RUN curl -fsSL https://deno.land/install.sh | sh
+ENV PATH="/root/.deno/bin:${PATH}"
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
