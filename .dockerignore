@@ -1,0 +1,6 @@
+node_modules
+vendor
+.env
+storage/app/downloads/*
+storage/logs/*
+.git

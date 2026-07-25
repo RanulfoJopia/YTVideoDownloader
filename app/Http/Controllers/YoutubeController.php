@@ -9,17 +9,45 @@ use Symfony\Component\Process\Exception\ExceptionInterface;
 
 class YoutubeController extends Controller
 {
-    private string $ytDlpPath = 'C:\\tools\\yt-dlp.exe';
-    private string $ffmpegDir = 'C:\\tools';
-    private string $tempDir  = 'C:\\tools\\temp';
+    private string $ytDlpPath;
+    private string $ffmpegDir;
+    private string $tempDir;
+
+    public function __construct()
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Local Windows development
+            $this->ytDlpPath = 'C:\\tools\\yt-dlp.exe';
+            $this->ffmpegDir = 'C:\\tools';
+            $this->tempDir   = 'C:\\tools\\temp';
+        } else {
+            // Render / Linux production
+            $this->ytDlpPath = 'yt-dlp';
+            $this->ffmpegDir = '/usr/bin';
+            $this->tempDir   = '/tmp/ytdlp';
+        }
+    }
 
     private function processEnv(): array
-{
-    $env = getenv(); // grab the FULL current environment (SystemRoot, windir, PATH, etc.)
-    $env['TEMP'] = $this->tempDir;
-    $env['TMP']  = $this->tempDir;
-    return $env;
-}
+    {
+        $env = getenv(); // grab the FULL current environment (SystemRoot, windir, PATH, etc.)
+        $env['TEMP'] = $this->tempDir;
+        $env['TMP']  = $this->tempDir;
+        return $env;
+    }
+
+    // Checks whether yt-dlp is reachable, whether it's a full Windows path
+    // or just a command name resolved via Linux's PATH
+    private function ytDlpAvailable(): bool
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return file_exists($this->ytDlpPath);
+        }
+
+        $process = new Process(['which', $this->ytDlpPath]);
+        $process->run();
+        return $process->isSuccessful();
+    }
 
     public function index()
     {
@@ -34,9 +62,9 @@ class YoutubeController extends Controller
 
         $url = $request->input('url');
 
-        if (!file_exists($this->ytDlpPath)) {
+        if (!$this->ytDlpAvailable()) {
             return response()->json([
-                'error' => 'yt-dlp.exe not found at ' . $this->ytDlpPath,
+                'error' => 'yt-dlp not found at ' . $this->ytDlpPath,
             ], 500);
         }
 
@@ -105,9 +133,9 @@ class YoutubeController extends Controller
         $url = $request->input('url');
         $height = $request->input('resolution');
 
-        if (!file_exists($this->ytDlpPath)) {
+        if (!$this->ytDlpAvailable()) {
             return response()->json([
-                'error' => 'yt-dlp.exe not found at ' . $this->ytDlpPath,
+                'error' => 'yt-dlp not found at ' . $this->ytDlpPath,
             ], 500);
         }
 
