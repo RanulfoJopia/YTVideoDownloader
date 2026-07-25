@@ -48,6 +48,25 @@ class YoutubeController extends Controller
         return $process->isSuccessful();
     }
 
+    // Copies the read-only secret cookies file into a writable temp location,
+    // since yt-dlp tries to update the cookie jar after each run and will
+    // crash if the file is read-only (as Render's Secret Files are).
+    private function getWritableCookiesPath(): ?string
+    {
+        if (!file_exists($this->cookiesPath)) {
+            return null;
+        }
+
+        if (!is_dir($this->tempDir)) {
+            mkdir($this->tempDir, 0755, true);
+        }
+
+        $writablePath = $this->tempDir . DIRECTORY_SEPARATOR . 'cookies.txt';
+        copy($this->cookiesPath, $writablePath);
+
+        return $writablePath;
+    }
+
     public function index()
     {
         return view('downloader');
@@ -83,9 +102,10 @@ class YoutubeController extends Controller
                 '--no-playlist',
             ];
 
-            if (file_exists($this->cookiesPath)) {
+            $writableCookies = $this->getWritableCookiesPath();
+            if ($writableCookies) {
                 $args[] = '--cookies';
-                $args[] = $this->cookiesPath;
+                $args[] = $writableCookies;
             }
 
             $args[] = $url;
@@ -170,9 +190,10 @@ class YoutubeController extends Controller
                 '--ffmpeg-location', $this->ffmpegDir,
             ];
 
-            if (file_exists($this->cookiesPath)) {
+            $writableCookies = $this->getWritableCookiesPath();
+            if ($writableCookies) {
                 $args[] = '--cookies';
-                $args[] = $this->cookiesPath;
+                $args[] = $writableCookies;
             }
 
             $args[] = '-o';
