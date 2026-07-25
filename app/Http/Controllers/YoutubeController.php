@@ -12,6 +12,7 @@ class YoutubeController extends Controller
     private string $ytDlpPath;
     private string $ffmpegDir;
     private string $tempDir;
+    private string $cookiesPath = '/etc/secrets/cookies.txt';
 
     public function __construct()
     {
